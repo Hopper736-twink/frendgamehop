@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PartyGame</title>
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;
+height:100vh;
+font-family:system-ui,Arial;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+color:#fff;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+#app{
+width:100%;
+max-width:420px;
+padding:20px;
+}
+.card{
+background:rgba(255,255,255,.12);
+backdrop-filter:blur(14px);
+border-radius:22px;
+padding:20px;
+box-shadow:0 20px 40px rgba(0,0,0,.45);
+animation:fade .3s ease;
+}
+h1,h2{text-align:center;margin-top:0}
+button{
+width:100%;
+padding:14px;
+margin-top:12px;
+border:none;
+border-radius:16px;
+font-size:16px;
+background:#ff4ecd;
+color:white;
+cursor:pointer;
+transition:.2s;
+}
+button:hover{transform:scale(1.04)}
+input{
+width:100%;
+padding:14px;
+margin-top:12px;
+border-radius:16px;
+border:none;
+font-size:16px;
+}
+.menu button{background:#6c63ff}
+.small{opacity:.8;font-size:14px;text-align:center}
+@keyframes fade{
+from{opacity:0;transform:translateY(10px)}
+to{opacity:1}
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+const app=document.getElementById("app");
+
+/* ====== ГЛАВНОЕ МЕНЮ ====== */
+function mainMenu(){
+app.innerHTML=`
+<div class="card menu">
+<h1>🎉 PartyGame</h1>
+<button onclick="truthMenu()">🎭 Правда или действие</button>
+<button onclick="spyMode()">🕵️ Шпион</button>
+<button onclick="mafiaMode()">🩸 Мафия</button>
+<p class="small">Передавайте телефон по кругу</p>
+</div>`;
+}
+
+/* ====== ПРАВДА ИЛИ ДЕЙСТВИЕ ====== */
+let players=[],fatigue={},turn=0;
+
+const truths=[
+"В кого ты когда-то влюблялся?",
+"Самый странный твой страх?",
+"О чём ты чаще всего врёшь?"
+];
+const dares=[
+"Сделай смешное лицо на 10 секунд",
+"Встань и повернись 3 раза",
+"Изобрази животное"
+];
+
+function truthMenu(){
+players=[];fatigue={};turn=0;
+app.innerHTML=`
+<div class="card">
+<h2>Правда или действие</h2>
+<input id="name" placeholder="Имя игрока">
+<button onclick="addPlayer()">Добавить</button>
+<div id="list" class="small"></div>
+<button onclick="startTruth()">Начать игру</button>
+<button onclick="mainMenu()">⬅ Назад</button>
+</div>`;
+}
+
+function addPlayer(){
+const n=document.getElementById("name").value.trim();
+if(!n)return;
+players.push(n);
+fatigue[n]=0;
+document.getElementById("list").innerText=players.join(", ");
+document.getElementById("name").value="";
+}
+
+function startTruth(){
+if(players.length<2)return alert("Минимум 2 игрока");
+nextTurn();
+}
+
+function nextTurn(extra=false){
+const name=players[turn];
+const isTruth=Math.random()<0.5;
+const task=isTruth?truths[Math.floor(Math.random()*truths.length)]
+                  :dares[Math.floor(Math.random()*dares.length)];
+app.innerHTML=`
+<div class="card">
+<h2>${name}</h2>
+<p>${isTruth?"🤔 Правда":"🔥 Действие"}</p>
+<p>${task}</p>
+<button onclick="done()">Выполнено</button>
+<button onclick="skip()">Отказ</button>
+</div>`;
+if(!extra)turn=(turn+1)%players.length;
+}
+
+function done(){nextTurn()}
+
+function skip(){
+const name=players[(turn-1+players.length)%players.length];
+fatigue[name]++;
+if(fatigue[name]>=2){
+fatigue[name]=0;
+nextTurn(true);
+}else nextTurn();
+}
+
+/* ====== ШПИОН ====== */
+function spyMode(){
+app.innerHTML=`
+<div class="card">
+<h2>🕵️ Шпион</h2>
+<p>Один из игроков — шпион</p>
+<button onclick="alert('Ты шпион 👁️')">Показать роль</button>
+<button onclick="mainMenu()">⬅ Назад</button>
+</div>`;
+}
+
+/* ====== МАФИЯ ====== */
+function mafiaMode(){
+app.innerHTML=`
+<div class="card">
+<h2>🩸 Мафия</h2>
+<p>Классическая мафия для компании</p>
+<button onclick="alert('Ночь начинается…')">Начать игру</button>
+<button onclick="mainMenu()">⬅ Назад</button>
+</div>`;
+}
+
+mainMenu();
+</script>
+</body>
+</html>
