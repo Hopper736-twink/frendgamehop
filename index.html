@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PartyGame Играбельный</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;height:100vh;font-family:system-ui,Arial;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);color:#fff;display:flex;justify-content:center;align-items:center;}
+#app{width:100%;max-width:420px;padding:20px;}
+.card{background:rgba(255,255,255,.12);backdrop-filter:blur(14px);border-radius:22px;padding:20px;box-shadow:0 20px 40px rgba(0,0,0,.45);animation:fade .3s ease;}
+h1,h2{text-align:center;margin-top:0}
+button{width:100%;padding:14px;margin-top:12px;border:none;border-radius:16px;font-size:16px;background:#ff4ecd;color:white;cursor:pointer;transition:.2s;}
+button:hover{transform:scale(1.04)}
+input{width:100%;padding:14px;margin-top:12px;border-radius:16px;border:none;font-size:16px;}
+.menu button{background:#6c63ff}
+.small{opacity:.8;font-size:14px;text-align:center}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const app=document.getElementById("app");
+
+/* ====== МАССИВЫ И ЗАГРУЗКА ЗАДАНИЙ ====== */
+let truths=[], dares=[];
+const TASKS_URL="https://raw.githubusercontent.com/username/repo/main/tasks.json";
+fetch(TASKS_URL)
+.then(res=>res.json())
+.then(data=>{truths=data.filter(t=>t.type==="truth").map(t=>t.text);dares=data.filter(t=>t.type==="dare").map(t=>t.text);console.log("Задания загружены")})
+.catch(err=>{console.error("Ошибка:",err);truths=["Кто тебе нравится?"];dares=["Сделай смешное лицо"]});
+
+/* ====== МЕНЮ ====== */
+function mainMenu(){
+app.innerHTML=`
+<div class="card menu">
+<h1>🎉 PartyGame</h1>
+<button onclick="truthMenu()">🎭 Правда или действие</button>
+<button onclick="spyMenu()">🕵️ Шпион</button>
+<button onclick="mafiaMenu()">🩸 Мафия</button>
+<p class="small">Передавайте телефон по кругу</p>
+</div>`;
+}
+
+/* ====== ПРАВДА И ДЕЙСТВИЕ ====== */
+let players=[],fatigue={},turn=0;
+function truthMenu(){
+players=[];fatigue={};turn=0;
+app.innerHTML=`
+<div class="card">
+<h2>Правда или действие</h2>
+<input id="name" placeholder="Имя игрока">
+<button onclick="addPlayer()">Добавить</button>
+<div id="list" class="small"></div>
+<button onclick="startTruth()">Начать игру</button>
+<button onclick="mainMenu()">⬅ Назад</button>
+</div>`;
+}
+function addPlayer(){
+const n=document.getElementById("name").value.trim();if(!n)return;
+players.push(n);fatigue[n]=0;
+document.getElementById("list").innerText=players.join(", ");
+document.getElementById("name").value="";
+}
+function startTruth(){if(players.length<2)return alert("Минимум 2 игрока");nextTurn();}
+function nextTurn(extra=false){
+const name=players[turn];
+const isTruth=Math.random()<0.5;
+const task=isTruth?truths[Math.floor(Math.random()*truths.length)]:dares[Math.floor(Math.random()*dares.length)];
+app.innerHTML=`
+<div class="card">
+<h2>${name}</h2>
+<p>${isTruth?"🤔 Правда":"🔥 Действие"}</p>
+<p>${task}</p>
+<button onclick="done()">Выполнено</button>
+<button onclick="skip()">Отказ</button>
+</div>`;
+if(!extra)turn=(turn+1)%players.length;
+}
+function done(){nextTurn()}
+function skip(){const name=players[(turn-1+players.length)%players.length];fatigue[name]++;if(fatigue[name]>=2){fatigue[name]=0;nextTurn(true);}else nextTurn();}
+
+/* ====== ШПИОН ====== */
+let spyPlayers=[],spyTopic="",spyIndex=-1;
+function spyMenu(){spyPlayers=[];spyTopic="";spyIndex=-1;
+app.innerHTML=`
+<div class="card">
+<h2>🕵️ Шпион</h2>
+<input id="name" placeholder="Имя игрока">
+<button onclick="addSpyPlayer()">Добавить игрока</button>
+<div id="list" class="small"></div>
+<input id="topic" placeholder="Тема (животные, профессии...)">
+<button onclick="startSpy()">Начать игру</button>
+<button onclick="mainMenu()">⬅ Назад</button>
+</div>`;
+}
+function addSpyPlayer(){const n=document.getElementById("name").value.trim();if(!n)return;spyPlayers.push(n);document.getElementById("list").innerText=spyPlayers.join(", ");document.getElementById("name").value="";}
+function startSpy(){spyTopic=document.getElementById("topic").value.trim();if(spyPlayers.length<2||!spyTopic)return alert("Игроки и тема нужны");spyIndex=Math.floor(Math.random()*spyPlayers.length);nextSpy();}
+function nextSpy(){
+const name=spyPlayers.shift();if(!name)name=spyPlayers[0];
+if(spyPlayers.length===0){app.innerHTML=`<div class="card"><h2>Игра окончена!</h2><button onclick="mainMenu()">⬅ Меню</button></div>`;return;}
+const role=(spyPlayers.length===spyIndex)?"Шпион":`Тема: ${spyTopic}`;
+app.innerHTML=`<div class="card"><h2>${name}</h2><p>${role}</p><button onclick="nextSpy()">Следующий</button></div>`;
+}
+
+/* ====== МАФИЯ ====== */
+let mafiaPlayers=[],mafiaRoles={},mafiaStage=0;
+function mafiaMenu(){mafiaPlayers=[];mafiaRoles={};mafiaStage=0;
+app.innerHTML=`
+<div class="card">
+<h2>🩸 Мафия</h2>
+<input id="name" placeholder="Имя игрока">
+<button onclick="addMafiaPlayer()">Добавить игрока</button>
+<div id="list" class="small"></div>
+<button onclick="startMafia()">Начать игру</button>
+<button onclick="mainMenu()">⬅ Назад</button>
+</div>`;
+}
+function addMafiaPlayer(){const n=document.getElementById("name").value.trim();if(!n)return;mafiaPlayers.push(n);document.getElementById("list").innerText=mafiaPlayers.join(", ");document.getElementById("name").value="";}
+function startMafia(){if(mafiaPlayers.length<3)return alert("Минимум 3 игрока");assignRoles();mafiaNight();}
+function assignRoles(){mafiaRoles={};let mafiaCount=Math.floor(mafiaPlayers.length/3);for(let i=0;i<mafiaCount;i++){mafiaRoles[mafiaPlayers[i]]="Мафия";}for(let i=mafiaCount;i<mafiaPlayers.length;i++){mafiaRoles[mafiaPlayers[i]]="Горожанин";}}
+function mafiaNight(){
+app.innerHTML=`<div class="card"><h2>Ночь</h2><p>Все закрывают глаза. Мафия выбирает жертву.</p><button onclick="mafiaDay()">День</button></div>`;
+}
+function mafiaDay(){
+let alive=mafiaPlayers.slice();let victim=alive[Math.floor(Math.random()*alive.length)];app.innerHTML=`<div class="card"><h2>День</h2><p>${victim} был убит!</p><button onclick="mafiaNight()">Ночь</button></div>`;
+}
+
+mainMenu();
+</script>
+</body>
+</html>
