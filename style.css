@@ -1,0 +1,40 @@
+*{box-sizing:border-box}
+body{
+margin:0;
+background:linear-gradient(160deg,#0f0c29,#302b63,#24243e);
+font-family:system-ui;
+color:white;
+height:100vh
+}
+#app{display:flex;flex-direction:column;height:100%}
+header{text-align:center;padding:20px}
+main{flex:1;display:flex;justify-content:center;align-items:center;padding:20px}
+.card{
+background:rgba(255,255,255,0.1);
+backdrop-filter:blur(12px);
+border-radius:20px;
+padding:20px;
+width:100%;
+max-width:420px;
+box-shadow:0 20px 40px rgba(0,0,0,.4);
+animation:fade .4s ease
+}
+button{
+width:100%;
+padding:14px;
+margin-top:10px;
+border:none;
+border-radius:14px;
+font-size:16px;
+background:#6c63ff;
+color:white;
+cursor:pointer;
+transition:.2s
+}
+button:hover{transform:scale(1.03)}
+input{width:100%;padding:14px;border-radius:14px;border:none;margin-top:10px}
+nav{display:flex;gap:10px;padding:10px}
+@keyframes fade{
+from{opacity:0;transform:translateY(10px)}
+to{opacity:1}
+}
