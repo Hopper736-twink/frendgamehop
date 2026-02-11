@@ -21,7 +21,7 @@ input{width:100%;padding:14px;margin-top:12px;border-radius:16px;border:none;fon
 <body>
 <div id="app"></div>
 <script>
-const app=document.getElementById("app");
+const app = document.getElementById("app");
 
 // ====== Глобальные переменные ======
 let players=[],turn=0,fatigue={};
@@ -34,25 +34,25 @@ async function loadTasks(){
   try{
     const res = await fetch("tasks.json");
     const data = await res.json();
-    // Собираем все задания из категорий
-    let truthsArr = [], daresArr = [];
+    let truthsArr=[], daresArr=[];
     for(const cat in data.truth) truthsArr.push(...data.truth[cat]);
     for(const cat in data.dare) daresArr.push(...data.dare[cat]);
     truths = truthsArr;
     dares = daresArr;
     tasksLoaded = true;
-  } catch(err){ alert("Ошибка загрузки заданий: "+err); }
+  } catch(err){ alert("Ошибка загрузки tasks.json: "+err); }
 }
+
 async function loadSpyWords(){
   try{
     const res = await fetch("spy_words.json");
     const data = await res.json();
-    // объединяем все категории в один массив
     let allWords = [];
     for(const cat in data) allWords.push(...data[cat]);
     spyWords = allWords;
-  } catch(err){ alert("Ошибка загрузки тем шпиона: "+err); }
+  } catch(err){ alert("Ошибка загрузки spy_words.json: "+err); }
 }
+
 loadTasks();
 loadSpyWords();
 
@@ -83,17 +83,20 @@ function truthMenu(){
     </div>
   `;
 }
+
 function addPlayer(){
   const n=document.getElementById("name").value.trim();if(!n)return;
   players.push(n);fatigue[n]=0;
   document.getElementById("list").innerText=players.join(", ");
   document.getElementById("name").value="";
 }
+
 function startTruth(){
   if(!tasksLoaded) return alert("Задания ещё не загрузились, подождите пару секунд");
   if(players.length<2) return alert("Минимум 2 игрока");
   nextTruth();
 }
+
 function nextTruth(extra=false){
   if(truths.length===0||dares.length===0) return alert("Нет заданий!");
   const name=players[turn];
@@ -111,6 +114,7 @@ function nextTruth(extra=false){
   `;
   if(!extra) turn=(turn+1)%players.length;
 }
+
 function done(){nextTruth();}
 function skip(){
   const name=players[(turn-1+players.length)%players.length];
@@ -133,23 +137,22 @@ function spyMenu(){
     </div>
   `;
 }
+
 function addSpyPlayer(){
   const n=document.getElementById("name").value.trim();if(!n)return;
   spyPlayers.push(n);
   document.getElementById("list").innerText=spyPlayers.join(", ");
   document.getElementById("name").value="";
 }
+
 function startSpy(){
   if(spyPlayers.length<2) return alert("Минимум 2 игрока");
   timerDuration=parseInt(document.getElementById("time").value)||120;
 
   // выбираем случайного шпиона
   let index = Math.floor(Math.random()*spyPlayers.length);
-
-  // повышаем шанс для имени "Максим"
   const maxims = spyPlayers.reduce((arr,p,i)=>{ if(p.toLowerCase()==="максим") arr.push(i); return arr; },[]);
   if(maxims.length>0 && Math.random()<0.3) index = maxims[Math.floor(Math.random()*maxims.length)];
-
   spyRoleIndex = index;
   spyTopic = spyWords[Math.floor(Math.random()*spyWords.length)];
   spyIndex = 0;
@@ -174,7 +177,7 @@ function toggleSpyRole(){
   if(roleEl.innerText==="Нажмите, чтобы увидеть роль"){
     if(spyIndex === spyRoleIndex){
       if(currentPlayer.toLowerCase()==="максим") roleEl.innerText="Ты шпион! Тема: "+spyTopic;
-      else roleEl.innerText="Ты шпион!";
+      else roleEl.innerText="Ты шпион!"; 
     } else {
       roleEl.innerText="Слово: "+spyTopic;
     }
@@ -218,12 +221,14 @@ function mafiaMenu(){
     </div>
   `;
 }
+
 function addMafiaPlayer(){
   const n=document.getElementById("name").value.trim();if(!n)return;
   mafiaPlayers.push(n);
   document.getElementById("list").innerText=mafiaPlayers.join(", ");
   document.getElementById("name").value="";
 }
+
 function startMafia(){
   if(mafiaPlayers.length<3) return alert("Минимум 3 игрока");
   mafiaRoles = ["Мафия","Доктор","Шериф"];
@@ -231,6 +236,7 @@ function startMafia(){
   mafiaRoles.sort(()=>Math.random()-0.5);
   showMafiaRoles(0);
 }
+
 function showMafiaRoles(i){
   if(i>=mafiaPlayers.length){alert("Все роли показаны!");mainMenu();return;}
   const name=mafiaPlayers[i];
@@ -242,6 +248,7 @@ function showMafiaRoles(i){
     </div>
   `;
 }
+
 function toggleMafiaRole(i){
   const roleEl=document.getElementById("role");
   if(roleEl.innerText==="Нажмите, чтобы увидеть роль"){
