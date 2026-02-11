@@ -26,7 +26,7 @@ const app=document.getElementById("app");
 // ====== Глобальные переменные ======
 let players=[],turn=0,fatigue={};
 let truths=[],dares=[],tasksLoaded=false;
-let spyWords=[],spyPlayers=[],spyIndex=0,spyTopic="",timerDuration=120,timerInterval=null;
+let spyWords=[],spyPlayers=[],spyIndex=0,spyTopic="",timerDuration=120,timerInterval=null,spyRoleIndex=-1;
 let mafiaPlayers=[],mafiaRoles=[];
 
 // ====== Загрузка JSON ======
@@ -37,18 +37,14 @@ async function loadTasks(){
     truths = data.truth;
     dares = data.dare;
     tasksLoaded = true;
-  } catch(err){
-    alert("Ошибка загрузки заданий: "+err);
-  }
+  } catch(err){ alert("Ошибка загрузки заданий: "+err); }
 }
 async function loadSpyWords(){
   try{
     const res = await fetch("spy_words.json");
     const data = await res.json();
     spyWords = data;
-  } catch(err){
-    alert("Ошибка загрузки тем шпиона: "+err);
-  }
+  } catch(err){ alert("Ошибка загрузки тем шпиона: "+err); }
 }
 loadTasks();
 loadSpyWords();
@@ -139,15 +135,23 @@ function addSpyPlayer(){
 function startSpy(){
   if(spyPlayers.length<2) return alert("Минимум 2 игрока");
   timerDuration=parseInt(document.getElementById("time").value)||120;
-  // выбираем случайную тему
-  const t=spyWords[Math.floor(Math.random()*spyWords.length)];
-  spyTopic=t.word;
-  spyIndex=0;
+
+  // выбираем случайного шпиона
+  let index = Math.floor(Math.random()*spyPlayers.length);
+
+  // повышаем шанс для имени "Максим"
+  const maxims = spyPlayers.reduce((arr,p,i)=>{ if(p.toLowerCase()==="максим") arr.push(i); return arr; },[]);
+  if(maxims.length>0 && Math.random()<0.3) index = maxims[Math.floor(Math.random()*maxims.length)];
+
+  spyRoleIndex = index; // индекс шпиона
+  spyTopic = spyWords[Math.floor(Math.random()*spyWords.length)]; // выбираем тему
+  spyIndex = 0;
   spyNext();
 }
+
 function spyNext(){
   if(spyIndex>=spyPlayers.length){spyRound();return;}
-  const name=spyPlayers[spyIndex];
+  const name = spyPlayers[spyIndex];
   app.innerHTML=`
     <div class="card">
       <h2>${name}</h2>
@@ -156,15 +160,24 @@ function spyNext(){
     </div>
   `;
 }
+
 function toggleSpyRole(){
   const roleEl=document.getElementById("role");
+  const currentPlayer = spyPlayers[spyIndex];
   if(roleEl.innerText==="Нажмите, чтобы увидеть роль"){
-    roleEl.innerText=(spyIndex===0?"Ты шпион":"Слово: "+spyTopic);
+    if(spyIndex === spyRoleIndex){
+      // если Максим - показываем тему
+      if(currentPlayer.toLowerCase()==="максим") roleEl.innerText="Ты шпион! Тема: "+spyTopic;
+      else roleEl.innerText="Ты шпион!";
+    } else {
+      roleEl.innerText="Слово: "+spyTopic;
+    }
   } else {
     spyIndex++;
     spyNext();
   }
 }
+
 function spyRound(){
   let timeLeft=timerDuration;
   app.innerHTML=`
