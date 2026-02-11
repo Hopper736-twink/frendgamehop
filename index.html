@@ -21,25 +21,21 @@ input{width:100%;padding:14px;margin-top:12px;border-radius:16px;border:none;fon
 <body>
 <div id="app"></div>
 <script>
-const app = document.getElementById("app");
+const app=document.getElementById("app");
 
 // ====== Глобальные переменные ======
 let players=[],turn=0,fatigue={};
-let truths=[],dares=[],tasksLoaded=false;
-let spyWords=[],spyPlayers=[],spyIndex=0,spyTopic="",timerDuration=120,timerInterval=null,spyRoleIndex=-1;
-let mafiaPlayers=[],mafiaRoles=[];
+let truths=[],dares=[];
+let spyWords=[],spyPlayers=[],spyIndex=0,spyRoleIndex=-1,spyTopic="",spyQuestion="",timerDuration=120,timerInterval=null;
+let mafiaPlayers=[],mafiaRoles={};
 
 // ====== Загрузка JSON ======
 async function loadTasks(){
   try{
     const res = await fetch("tasks.json");
     const data = await res.json();
-    let truthsArr=[], daresArr=[];
-    for(const cat in data.truth) truthsArr.push(...data.truth[cat]);
-    for(const cat in data.dare) daresArr.push(...data.dare[cat]);
-    truths = truthsArr;
-    dares = daresArr;
-    tasksLoaded = true;
+    truths=data.easy.truth;
+    dares=data.easy.dare;
   } catch(err){ alert("Ошибка загрузки tasks.json: "+err); }
 }
 
@@ -47,14 +43,10 @@ async function loadSpyWords(){
   try{
     const res = await fetch("spy_words.json");
     const data = await res.json();
-    let allWords = [];
-    for(const cat in data) allWords.push(...data[cat]);
-    spyWords = allWords;
+    if(Array.isArray(data)) spyWords = data;
+    else alert("spy_words.json должен быть массив объектов с полями word и question");
   } catch(err){ alert("Ошибка загрузки spy_words.json: "+err); }
 }
-
-loadTasks();
-loadSpyWords();
 
 // ====== Меню ======
 function mainMenu(){
@@ -83,26 +75,17 @@ function truthMenu(){
     </div>
   `;
 }
-
 function addPlayer(){
   const n=document.getElementById("name").value.trim();if(!n)return;
   players.push(n);fatigue[n]=0;
   document.getElementById("list").innerText=players.join(", ");
   document.getElementById("name").value="";
 }
-
-function startTruth(){
-  if(!tasksLoaded) return alert("Задания ещё не загрузились, подождите пару секунд");
-  if(players.length<2) return alert("Минимум 2 игрока");
-  nextTruth();
-}
-
+function startTruth(){if(players.length<2)return alert("Минимум 2 игрока");nextTruth();}
 function nextTruth(extra=false){
-  if(truths.length===0||dares.length===0) return alert("Нет заданий!");
   const name=players[turn];
   const isTruth=Math.random()<0.5;
-  const task=isTruth ? truths[Math.floor(Math.random()*truths.length)] 
-                      : dares[Math.floor(Math.random()*dares.length)];
+  const task=isTruth?truths[Math.floor(Math.random()*truths.length)]:dares[Math.floor(Math.random()*dares.length)];
   app.innerHTML=`
     <div class="card">
       <h2>${name}</h2>
@@ -114,8 +97,7 @@ function nextTruth(extra=false){
   `;
   if(!extra) turn=(turn+1)%players.length;
 }
-
-function done(){nextTruth();}
+function done(){nextTruth()}
 function skip(){
   const name=players[(turn-1+players.length)%players.length];
   fatigue[name]++;
@@ -124,7 +106,7 @@ function skip(){
 
 // ====== Шпион ======
 function spyMenu(){
-  spyPlayers=[];spyIndex=0;spyTopic="";timerDuration=120;
+  spyPlayers=[];spyIndex=0;spyRoleIndex=-1;spyTopic="";spyQuestion="";timerDuration=120;
   app.innerHTML=`
     <div class="card">
       <h2>🕵️ Шпион</h2>
@@ -137,14 +119,12 @@ function spyMenu(){
     </div>
   `;
 }
-
 function addSpyPlayer(){
   const n=document.getElementById("name").value.trim();if(!n)return;
   spyPlayers.push(n);
   document.getElementById("list").innerText=spyPlayers.join(", ");
   document.getElementById("name").value="";
 }
-
 function startSpy(){
   if(spyPlayers.length<2) return alert("Минимум 2 игрока");
   timerDuration=parseInt(document.getElementById("time").value)||120;
@@ -154,11 +134,15 @@ function startSpy(){
   const maxims = spyPlayers.reduce((arr,p,i)=>{ if(p.toLowerCase()==="максим") arr.push(i); return arr; },[]);
   if(maxims.length>0 && Math.random()<0.3) index = maxims[Math.floor(Math.random()*maxims.length)];
   spyRoleIndex = index;
-  spyTopic = spyWords[Math.floor(Math.random()*spyWords.length)];
+
+  // выбираем случайный объект с word и question
+  const obj = spyWords[Math.floor(Math.random()*spyWords.length)];
+  spyTopic = obj.word;
+  spyQuestion = obj.question;
+
   spyIndex = 0;
   spyNext();
 }
-
 function spyNext(){
   if(spyIndex>=spyPlayers.length){spyRound();return;}
   const name = spyPlayers[spyIndex];
@@ -170,23 +154,19 @@ function spyNext(){
     </div>
   `;
 }
-
 function toggleSpyRole(){
   const roleEl=document.getElementById("role");
-  const currentPlayer = spyPlayers[spyIndex];
   if(roleEl.innerText==="Нажмите, чтобы увидеть роль"){
     if(spyIndex === spyRoleIndex){
-      if(currentPlayer.toLowerCase()==="максим") roleEl.innerText="Ты шпион! Тема: "+spyTopic;
-      else roleEl.innerText="Ты шпион!"; 
+      roleEl.innerText="Ты шпион!";
     } else {
-      roleEl.innerText="Слово: "+spyTopic;
+      roleEl.innerText="Слово: "+spyTopic+"\nВопрос: "+spyQuestion;
     }
   } else {
     spyIndex++;
     spyNext();
   }
 }
-
 function spyRound(){
   let timeLeft=timerDuration;
   app.innerHTML=`
@@ -209,7 +189,7 @@ function spyLose(){clearInterval(timerInterval);alert("Шпион проигра
 
 // ====== Мафия ======
 function mafiaMenu(){
-  mafiaPlayers=[];mafiaRoles=[];turn=0;
+  mafiaPlayers=[];mafiaRoles={};
   app.innerHTML=`
     <div class="card">
       <h2>🩸 Мафия</h2>
@@ -221,44 +201,45 @@ function mafiaMenu(){
     </div>
   `;
 }
-
 function addMafiaPlayer(){
   const n=document.getElementById("name").value.trim();if(!n)return;
   mafiaPlayers.push(n);
   document.getElementById("list").innerText=mafiaPlayers.join(", ");
   document.getElementById("name").value="";
 }
-
 function startMafia(){
   if(mafiaPlayers.length<3) return alert("Минимум 3 игрока");
-  mafiaRoles = ["Мафия","Доктор","Шериф"];
-  while(mafiaRoles.length<mafiaPlayers.length) mafiaRoles.push("Мирный");
-  mafiaRoles.sort(()=>Math.random()-0.5);
-  showMafiaRoles(0);
-}
-
-function showMafiaRoles(i){
-  if(i>=mafiaPlayers.length){alert("Все роли показаны!");mainMenu();return;}
-  const name=mafiaPlayers[i];
-  app.innerHTML=`
-    <div class="card">
-      <h2>${name}</h2>
-      <p id="role">Нажмите, чтобы увидеть роль</p>
-      <button onclick="toggleMafiaRole(${i})">Показать/Скрыть</button>
-    </div>
-  `;
-}
-
-function toggleMafiaRole(i){
-  const roleEl=document.getElementById("role");
-  if(roleEl.innerText==="Нажмите, чтобы увидеть роль"){
-    roleEl.innerText=mafiaRoles[i];
-  } else {
-    showMafiaRoles(i+1);
+  // Роли: 1 мафия, 1 шериф, 1 доктор, остальное мирные
+  const roles = ["Мафия","Шериф","Доктор"];
+  for(let i=3;i<mafiaPlayers.length;i++) roles.push("Мирный житель");
+  // Перемешиваем и присваиваем игрокам
+  roles.sort(()=>Math.random()-0.5);
+  mafiaPlayers.forEach((p,i)=>mafiaRoles[p]=roles[i]);
+  // Показ ролей по очереди
+  let i=0;
+  function showRole(){
+    if(i>=mafiaPlayers.length){mainMenu(); return;}
+    const name = mafiaPlayers[i];
+    app.innerHTML=`
+      <div class="card">
+        <h2>${name}</h2>
+        <p id="role">Нажмите, чтобы увидеть роль</p>
+        <button onclick="toggleRole()">Показать/Скрыть</button>
+      </div>
+    `;
   }
+  window.toggleRole = function(){
+    const name = mafiaPlayers[i];
+    const roleEl = document.getElementById("role");
+    if(roleEl.innerText==="Нажмите, чтобы увидеть роль"){
+      roleEl.innerText=mafiaRoles[name];
+    } else { i++; showRole(); }
+  }
+  showRole();
 }
 
-mainMenu();
+// ====== Загрузка всех данных и старт ======
+Promise.all([loadTasks(),loadSpyWords()]).then(mainMenu);
 </script>
 </body>
 </html>
